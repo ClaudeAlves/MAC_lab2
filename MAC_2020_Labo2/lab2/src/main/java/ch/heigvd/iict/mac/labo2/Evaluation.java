@@ -156,12 +156,17 @@ public class Evaluation {
         double fMeasure = 0.0;
 
 
+        // average precision at the 11 recall levels (0,0.1,0.2,...,1) over all queries
+        double[] avgPrecisionAtRecallLevels = createZeroedRecalls();
+
         for(String query : queries) {
             List<Integer> queryResults = lab2Index.search(query);
             List<Integer> qrelResults = qrels.get(queryNumber);
             int index = 0;
             double ap = 0.0;
             int retrievedRelevantDocs = 0;
+
+            double[] precisionAtRecallLevels = createZeroedRecalls();
 
             queryNumber++;
 
@@ -173,17 +178,48 @@ public class Evaluation {
                     if (qrelResults.contains(retrieved)) {
                         retrievedRelevantDocs++;
                         ap += (double) retrievedRelevantDocs/index;
+                        double recall = (double) retrievedRelevantDocs/qrelResults.size();
+                        double precision = (double) retrievedRelevantDocs/index;
+                        if(recall >= 1) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 10);
+                        } else if (recall >= 0.9) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 9);
+                        }else if (recall >= 0.8) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 8);
+                        }else if (recall >= 0.7) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 7);
+                        }else if (recall >= 0.6) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 6);
+                        }else if (recall >= 0.5) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 5);
+                        }else if (recall >= 0.4) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 4);
+                        }else if (recall >= 0.3) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 3);
+                        }else if (recall >= 0.2) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 2);
+                        }else if (recall >= 0.1) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 1);
+                        }else if (recall >= 0) {
+                            checkRecallLevels(precisionAtRecallLevels, precision, 0);
+                        }
                     }
                     if (index == qrelResults.size()) {
                         avgRPrecision += (double) retrievedRelevantDocs / qrelResults.size();
                     }
 
                 }
+                for(int i = 0; i < 11; ++i) {
+                    avgPrecisionAtRecallLevels[i] += precisionAtRecallLevels[i];
+                }
                 totalRetrievedRelevantDocs += retrievedRelevantDocs;
                 avgPrecision += (double) retrievedRelevantDocs/queryResults.size();
                 meanAveragePrecision += ap/retrievedRelevantDocs;
                 avgRecall += (double) retrievedRelevantDocs/qrelResults.size();
             }
+        }
+        for(int i = 0; i < 11; ++i) {
+            avgPrecisionAtRecallLevels[i] /= queries.size();
         }
         avgPrecision /= queries.size();
         avgRPrecision /= queries.size();;
@@ -202,9 +238,6 @@ public class Evaluation {
         //        List<Integer> qrelResults = qrels.get(queryNumber);
 
 
-        // average precision at the 11 recall levels (0,0.1,0.2,...,1) over all queries
-        double[] avgPrecisionAtRecallLevels = createZeroedRecalls();
-
         ///
         ///  Part IV - Display the metrics
         ///
@@ -217,6 +250,13 @@ public class Evaluation {
                 meanAveragePrecision, avgRPrecision,
                 avgPrecisionAtRecallLevels);
 
+    }
+    private static void checkRecallLevels(double[] table, double precision, int end) {
+        for(int i = 0; i <= end; ++i) {
+            if(table[i] < precision) {
+                table[i] = precision;
+            }
+        }
     }
 
     private static void displayMetrics(
