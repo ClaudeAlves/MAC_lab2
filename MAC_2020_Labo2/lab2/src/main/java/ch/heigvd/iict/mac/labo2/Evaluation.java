@@ -1,6 +1,7 @@
 package ch.heigvd.iict.mac.labo2;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.StopwordAnalyzerBase;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
@@ -115,6 +116,7 @@ public class Evaluation {
 
         //TODO student: use this when doing the english analyzer + common words
         List<String> commonWords = readingCommonWords();
+        CharArraySet set = new CharArraySet(commonWords, true);
 
         ///
         ///  Part I - Select an analyzer
@@ -122,6 +124,10 @@ public class Evaluation {
         // TODO student: compare Analyzers here i.e. change analyzer to
         // the asked analyzers once the metrics have been implemented
         analyzer = new WhitespaceAnalyzer();
+        //analyzer = new StandardAnalyzer();
+        //analyzer = new EnglishAnalyzer();
+        //analyzer = new EnglishAnalyzer(set);
+
 
 
         ///
@@ -139,16 +145,7 @@ public class Evaluation {
 
         // TODO student
         // compute the metrics asked in the instructions
-        // you may want to call these methods to get:
-        // -  The query results returned by Lucene i.e. computed/empirical
-        //    documents retrieved
-        //        List<Integer> queryResults = lab2Index.search(query);
-        //
-        // - The true query results from qrels file i.e. genuine documents
-        //   returned matching a query
-        //        List<Integer> qrelResults = qrels.get(queryNumber);
-
-        int queryNumber = 0;
+        int queryNumber = 1;
         int totalRelevantDocs = 0;
         int totalRetrievedDocs = 0;
         int totalRetrievedRelevantDocs = 0;
@@ -158,6 +155,49 @@ public class Evaluation {
         double meanAveragePrecision = 0.0;
         double fMeasure = 0.0;
 
+
+        for(String query : queries) {
+            List<Integer> queryResults = lab2Index.search(query);
+            List<Integer> qrelResults = qrels.get(queryNumber);
+            int index = 0;
+            double avgNowPrecision = 0.0;
+            int retrievedRelevantDocs = 0;
+
+            queryNumber++;
+
+            if(qrelResults != null) {
+                totalRelevantDocs += qrelResults.size();
+                totalRetrievedDocs += queryResults.size();
+                for (Integer retrieved : queryResults) {
+                    index++;
+                    if (qrelResults.contains(retrieved)) {
+                        retrievedRelevantDocs++;
+                        avgNowPrecision += retrievedRelevantDocs/index;
+                    }
+                }
+                totalRetrievedRelevantDocs += retrievedRelevantDocs;
+                avgPrecision += avgNowPrecision/retrievedRelevantDocs;
+                meanAveragePrecision += avgPrecision;
+                avgRPrecision += queryResults.size() / qrelResults.size();
+                avgRecall += retrievedRelevantDocs/qrelResults.size();
+            }
+        }
+        avgRPrecision /= queries.size();;
+        avgRecall /= queries.size();
+        meanAveragePrecision /= queries.size();
+
+        fMeasure = (2 * avgPrecision * avgRecall)/(avgPrecision + avgRecall);
+
+        // you may want to call these methods to get:
+        // -  The query results returned by Lucene i.e. computed/empirical
+        //    documents retrieved
+        //       List<Integer> queryResults = lab2Index.search(query);
+        //
+        // - The true query results from qrels file i.e. genuine documents
+        //   returned matching a query
+        //        List<Integer> qrelResults = qrels.get(queryNumber);
+
+
         // average precision at the 11 recall levels (0,0.1,0.2,...,1) over all queries
         double[] avgPrecisionAtRecallLevels = createZeroedRecalls();
 
@@ -165,12 +205,14 @@ public class Evaluation {
         ///  Part IV - Display the metrics
         ///
 
+
         //TODO student implement what is needed (i.e. the metrics) to be able
         // to display the results
         displayMetrics(totalRetrievedDocs, totalRelevantDocs,
                 totalRetrievedRelevantDocs, avgPrecision, avgRecall, fMeasure,
                 meanAveragePrecision, avgRPrecision,
                 avgPrecisionAtRecallLevels);
+
     }
 
     private static void displayMetrics(
