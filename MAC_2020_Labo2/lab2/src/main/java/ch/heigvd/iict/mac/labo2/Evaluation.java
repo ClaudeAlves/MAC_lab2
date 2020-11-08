@@ -160,7 +160,7 @@ public class Evaluation {
             List<Integer> queryResults = lab2Index.search(query);
             List<Integer> qrelResults = qrels.get(queryNumber);
             int index = 0;
-            double avgNowPrecision = 0.0;
+            double ap = 0.0;
             int retrievedRelevantDocs = 0;
 
             queryNumber++;
@@ -172,16 +172,20 @@ public class Evaluation {
                     index++;
                     if (qrelResults.contains(retrieved)) {
                         retrievedRelevantDocs++;
-                        avgNowPrecision += retrievedRelevantDocs/index;
+                        ap += (double) retrievedRelevantDocs/index;
                     }
+                    if (index == qrelResults.size()) {
+                        avgRPrecision += (double) retrievedRelevantDocs / qrelResults.size();
+                    }
+
                 }
                 totalRetrievedRelevantDocs += retrievedRelevantDocs;
-                avgPrecision += avgNowPrecision/retrievedRelevantDocs;
-                meanAveragePrecision += avgPrecision;
-                avgRPrecision += queryResults.size() / qrelResults.size();
-                avgRecall += retrievedRelevantDocs/qrelResults.size();
+                avgPrecision += (double) retrievedRelevantDocs/queryResults.size();
+                meanAveragePrecision += ap/retrievedRelevantDocs;
+                avgRecall += (double) retrievedRelevantDocs/qrelResults.size();
             }
         }
+        avgPrecision /= queries.size();
         avgRPrecision /= queries.size();;
         avgRecall /= queries.size();
         meanAveragePrecision /= queries.size();
